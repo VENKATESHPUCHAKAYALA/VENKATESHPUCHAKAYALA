@@ -25,11 +25,20 @@ def get_db():
         db.close()
 
 
+# Root API
+@app.get("/")
+def home():
+    return {"message": "Employee Management API is running"}
+
+
+# Get employees
 @app.get("/api/employees", response_model=list[EmployeeResponse])
+@app.get("/employees", response_model=list[EmployeeResponse])
 def get_employees(db: Session = Depends(get_db)):
     return db.query(Employee).all()
 
 
+# Add employee
 @app.post("/api/employees", response_model=EmployeeResponse)
 def add_employee(
     employee: EmployeeCreate,
@@ -47,6 +56,7 @@ def add_employee(
     return new_employee
 
 
+# Delete employee
 @app.delete("/api/employees/{employee_id}")
 def delete_employee(
     employee_id: int,
@@ -70,16 +80,24 @@ def delete_employee(
     return {"message": "Employee deleted successfully"}
 
 
+# Update employee
 @app.put("/api/employees/{employee_id}", response_model=EmployeeResponse)
 def update_employee(
     employee_id: int,
     employee_data: EmployeeUpdate,
     db: Session = Depends(get_db),
 ):
-    employee = db.query(Employee).filter(Employee.id == employee_id).first()
+    employee = (
+        db.query(Employee)
+        .filter(Employee.id == employee_id)
+        .first()
+    )
 
     if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Employee not found",
+        )
 
     employee.name = employee_data.name
     employee.role = employee_data.role
@@ -89,9 +107,9 @@ def update_employee(
     return employee
 
 
+# Frontend - keep this at the bottom
 app.mount(
     "/",
     StaticFiles(directory=FRONTEND_DIR, html=True),
     name="frontend",
 )
-

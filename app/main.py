@@ -10,6 +10,18 @@ from app.models import Employee
 from app.schemas import EmployeeCreate, EmployeeResponse, EmployeeUpdate
 
 Base.metadata.create_all(bind=engine)
+# Add fields to an existing SQLite database created by an older version.
+with engine.begin() as connection:
+    columns = connection.exec_driver_sql("PRAGMA table_info(employees)").fetchall()
+    existing_columns = {column[1] for column in columns}
+    if columns and "location" not in existing_columns:
+        connection.exec_driver_sql(
+            "ALTER TABLE employees ADD COLUMN location VARCHAR NOT NULL DEFAULT ''"
+        )
+    if columns and "domain" not in existing_columns:
+        connection.exec_driver_sql("ALTER TABLE employees ADD COLUMN domain VARCHAR NOT NULL DEFAULT ''")
+    if columns and "working" not in existing_columns:
+        connection.exec_driver_sql("ALTER TABLE employees ADD COLUMN working VARCHAR NOT NULL DEFAULT 'Working'")
 
 app = FastAPI(title="Employee Management API")
 
@@ -26,7 +38,7 @@ def get_db():
 
 
 # Root API
-@app.get("/")
+@app.get("/api/health")
 def home():
     return {"message": "Employee Management API is running"}
 
@@ -47,6 +59,9 @@ def add_employee(
     new_employee = Employee(
         name=employee.name,
         role=employee.role,
+        location=employee.location,
+        domain=employee.domain,
+        working=employee.working,
     )
 
     db.add(new_employee)
@@ -101,6 +116,9 @@ def update_employee(
 
     employee.name = employee_data.name
     employee.role = employee_data.role
+    employee.location = employee_data.location
+    employee.domain = employee_data.domain
+    employee.working = employee_data.working
     db.commit()
     db.refresh(employee)
 
